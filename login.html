@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ログイン - Chat App</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-box { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 300px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h2 style="text-align:center;">🔑 ログイン</h2>
+        <input type="email" id="email" placeholder="メールアドレス">
+        <input type="password" id="pass" placeholder="パスワード">
+        <button id="login-btn">ログイン</button>
+        <p id="err" style="color:red; font-size:12px;"></p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB2P66lPG8WyMNlx3AKHNxI023s0Xg_Vs8",
+            authDomain: "my-chat-app-e20e2.firebaseapp.com",
+            projectId: "my-chat-app-e20e2",
+            storageBucket: "my-chat-app-e20e2.firebasestorage.app",
+            messagingSenderId: "694675475344",
+            appId: "1:694675475344:web:ed3ff496775f7d7dd30115"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        document.getElementById("login-btn").onclick = async () => {
+            const email = document.getElementById("email").value;
+            const pass = document.getElementById("pass").value;
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+                // 成功したらチャット画面（index.html）へ移動
+                window.location.href = "index.html";
+            } catch (e) {
+                document.getElementById("err").innerText = "ログインに失敗しました";
+            }
+        };
+    </script>
+</body>
+</html>
