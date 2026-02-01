@@ -3,31 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Simple Chat</title>
+    <title>Private Chat</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        #messages { height: 300px; overflow-y: scroll; border: 1px solid #ccc; margin-bottom: 10px; padding: 10px; background: #f9f9f9; }
-        .msg-item { margin-bottom: 8px; border-bottom: 1px dotted #ddd; padding-bottom: 5px; }
-        input { padding: 8px; margin-bottom: 5px; }
-        #name { width: 30%; }
-        #msg { width: 60%; }
-        button { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        #login-ui, #chat-ui { padding: 20px; display: none; }
+        #messages { flex-grow: 1; overflow-y: auto; border: 1px solid #ccc; margin-bottom: 10px; padding: 10px; background: #f9f9f9; }
+        .input-area { display: flex; gap: 5px; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <h2>💬 爆速チャット</h2>
-    <div id="messages"></div>
-    
-    <input type="text" id="name" placeholder="名前">
-    <input type="text" id="msg" placeholder="メッセージを入力">
-    <button id="send">送信</button>
+    <div id="login-ui">
+        <h2>ログイン</h2>
+        <input type="email" id="email" placeholder="Gmailアドレス"><br><br>
+        <input type="password" id="pass" placeholder="パスワード"><br><br>
+        <button id="login-btn">ログイン</button>
+    </div>
+
+    <div id="chat-ui">
+        <h2>💬 ログイン中: <span id="user-display"></span></h2>
+        <div id="messages"></div>
+        <div class="input-area">
+            <input type="text" id="msg" placeholder="メッセージを入力" style="flex-grow: 1;">
+            <button id="send">送信</button>
+            <button id="logout" style="background:#dc3545;">ログアウト</button>
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // あなたの設定情報をそのまま反映
+        // ★あなたのFirebase設定をここに貼り付け★
         const firebaseConfig = {
             apiKey: "AIzaSyB2P66lPG8WyMNlx3AKHNxI023s0Xg_Vs8",
             authDomain: "my-chat-app-e20e2.firebaseapp.com",
@@ -38,33 +48,47 @@
             measurementId: "G-5LDN73B72G"
         };
 
-        // Firebaseの初期化
         const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app); 
-        const dbRef = ref(db, "chat"); // "chat"という名前の場所に保存するよ！
+        const db = getDatabase(app);
+        const auth = getAuth(app);
+        const dbRef = ref(db, "chat");
 
-        // 【送信】ボタンを押した時の処理
-        document.getElementById("send").addEventListener("click", function() {
-            const name = document.getElementById("name").value;
-            const text = document.getElementById("msg").value;
+        // ログイン処理
+        document.getElementById("login-btn").onclick = () => {
+            const email = document.getElementById("email").value;
+            const pass = document.getElementById("pass").value;
+            signInWithEmailAndPassword(auth, email, pass).catch(err => alert("失敗: " + err.message));
+        };
 
-            if(!name || !text) return alert("名前とメッセージを入れてね！");
+        // ログアウト処理
+        document.getElementById("logout").onclick = () => signOut(auth);
 
-            // データベースに保存
-            push(dbRef, {
-                uname: name,
-                text: text
-            });
-            document.getElementById("msg").value = ""; // 入力欄を空にする
+        // 状態監視
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById("login-ui").style.display = "none";
+                document.getElementById("chat-ui").style.display = "block";
+                document.getElementById("user-display").innerText = user.email.split('@')[0]; // @より前を表示
+            } else {
+                document.getElementById("login-ui").style.display = "block";
+                document.getElementById("chat-ui").style.display = "none";
+            }
         });
 
-        // 【受信】データが追加されたら自動で画面に表示
+        // 送信
+        document.getElementById("send").onclick = () => {
+            const text = document.getElementById("msg").value;
+            if(!text) return;
+            push(dbRef, { uname: auth.currentUser.email.split('@')[0], text: text });
+            document.getElementById("msg").value = "";
+        };
+
+        // 受信
         onChildAdded(dbRef, (data) => {
             const msg = data.val();
             const messagesDiv = document.getElementById("messages");
-            const newMsg = `<div class="msg-item"><b>${msg.uname}</b>: ${msg.text}</div>`;
-            messagesDiv.insertAdjacentHTML("beforeend", newMsg);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight; // 常に最新を表示
+            messagesDiv.insertAdjacentHTML("beforeend", `<div style="margin-bottom:10px;"><b>${msg.uname}</b>: ${msg.text}</div>`);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
         });
     </script>
 </body>
