@@ -5,90 +5,86 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Private Chat</title>
     <style>
-        body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        #login-ui, #chat-ui { padding: 20px; display: none; }
-        #messages { flex-grow: 1; overflow-y: auto; border: 1px solid #ccc; margin-bottom: 10px; padding: 10px; background: #f9f9f9; }
-        .input-area { display: flex; gap: 5px; }
-        input { padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
-        button { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        #login-ui, #chat-ui { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 90%; max-width: 400px; }
+        #chat-ui { display: none; height: 85vh; max-width: 600px; flex-direction: column; }
+        #messages { flex-grow: 1; overflow-y: auto; border: 1px solid #eee; margin-bottom: 15px; padding: 10px; background: #fff; height: 300px; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .msg { margin-bottom: 10px; padding: 8px 12px; background: #f1f0f0; border-radius: 10px; width: fit-content; }
     </style>
 </head>
 <body>
 
     <div id="login-ui">
-        <h2>ログイン</h2>
-        <input type="email" id="email" placeholder="Gmailアドレス"><br><br>
-        <input type="password" id="pass" placeholder="パスワード"><br><br>
+        <h2 style="text-align:center;">🔑 ログイン</h2>
+        <input type="email" id="email" placeholder="登録したメールアドレス">
+        <input type="password" id="pass" placeholder="パスワード">
         <button id="login-btn">ログイン</button>
+        <p id="err" style="color:red; font-size:12px;"></p>
     </div>
 
     <div id="chat-ui">
-        <h2>💬 ログイン中: <span id="user-display"></span></h2>
+        <h3 id="user-display" style="margin:0 0 10px 0; color:#555;"></h3>
         <div id="messages"></div>
-        <div class="input-area">
-            <input type="text" id="msg" placeholder="メッセージを入力" style="flex-grow: 1;">
-            <button id="send">送信</button>
-            <button id="logout" style="background:#dc3545;">ログアウト</button>
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="msg" placeholder="メッセージ..." style="margin:0;">
+            <button id="send" style="width:100px;">送信</button>
         </div>
+        <button id="logout" style="margin-top:10px; background:#ccc; color:#333; padding:5px;">ログアウト</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, push, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // ★あなたのFirebase設定をここに貼り付け★
+        // ★ ここをあなたのConfigに書き換え！ ★
         const firebaseConfig = {
-            apiKey: "AIzaSyB2P66lPG8WyMNlx3AKHNxI023s0Xg_Vs8",
-            authDomain: "my-chat-app-e20e2.firebaseapp.com",
-            projectId: "my-chat-app-e20e2",
-            storageBucket: "my-chat-app-e20e2.firebasestorage.app",
-            messagingSenderId: "694675475344",
-            appId: "1:694675475344:web:ed3ff496775f7d7dd30115",
-            measurementId: "G-5LDN73B72G"
+            apiKey: "あなたのAPIキー",
+            authDomain: "あなたのプロジェクト.firebaseapp.com",
+            databaseURL: "あなたのDatabaseURL",
+            projectId: "あなたのプロジェクトID",
+            storageBucket: "あなたのプロジェクト.appspot.com",
+            messagingSenderId: "あなたのID",
+            appId: "あなたのAPP ID"
         };
 
         const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
         const auth = getAuth(app);
+        const db = getDatabase(app);
         const dbRef = ref(db, "chat");
 
-        // ログイン処理
         document.getElementById("login-btn").onclick = () => {
             const email = document.getElementById("email").value;
             const pass = document.getElementById("pass").value;
-            signInWithEmailAndPassword(auth, email, pass).catch(err => alert("失敗: " + err.message));
+            signInWithEmailAndPassword(auth, email, pass).catch(e => document.getElementById("err").innerText = "失敗: " + e.message);
         };
 
-        // ログアウト処理
         document.getElementById("logout").onclick = () => signOut(auth);
 
-        // 状態監視
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.getElementById("login-ui").style.display = "none";
-                document.getElementById("chat-ui").style.display = "block";
-                document.getElementById("user-display").innerText = user.email.split('@')[0]; // @より前を表示
+                document.getElementById("chat-ui").style.display = "flex";
+                document.getElementById("user-display").innerText = "👤 " + user.email.split('@')[0];
             } else {
                 document.getElementById("login-ui").style.display = "block";
                 document.getElementById("chat-ui").style.display = "none";
             }
         });
 
-        // 送信
         document.getElementById("send").onclick = () => {
             const text = document.getElementById("msg").value;
             if(!text) return;
-            push(dbRef, { uname: auth.currentUser.email.split('@')[0], text: text });
+            push(dbRef, { uname: auth.currentUser.email.split('@')[0], text: text, time: serverTimestamp() });
             document.getElementById("msg").value = "";
         };
 
-        // 受信
         onChildAdded(dbRef, (data) => {
-            const msg = data.val();
-            const messagesDiv = document.getElementById("messages");
-            messagesDiv.insertAdjacentHTML("beforeend", `<div style="margin-bottom:10px;"><b>${msg.uname}</b>: ${msg.text}</div>`);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            const m = data.val();
+            document.getElementById("messages").insertAdjacentHTML("beforeend", `<div class="msg"><b>${m.uname}</b>: ${m.text}</div>`);
+            document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
         });
     </script>
 </body>
